@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>{{ ad.title }} - Детали объявления</title>
+    <style>
+        .ad-container {
+            max-width: 800px;
+            margin: 20px auto;
+            padding: 20px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+        }
+        .ad-image {
+            max-width: 100%;
+            height: auto;
+            margin-bottom: 15px;
+        }
+        .action-buttons {
+            margin-top: 20px;
+        }
+        .action-buttons a {
+            padding: 8px 15px;
+            margin-right: 10px;
+            background-color: #4CAF50;
+            color: white;
+            text-decoration: none;
+            border-radius: 4px;
+        }
+        .action-buttons a.delete {
+            background-color: #f44336;
+        }
+        .proposals-list {
+            margin-top: 30px;
+        }
+        .proposal {
+            padding: 10px;
+            margin-bottom: 10px;
+            background-color: #f9f9f9;
+            border-left: 4px solid #4CAF50;
+        }
+    </style>
+</head>
+<body>
+    <div class="ad-container">
+        <!-- Заголовок и информация об авторе -->
+        <h1>{{ ad.title }}</h1>
+        <p>Автор: {{ ad.user.username }} | Опубликовано: {{ ad.created_at|date:"d.m.Y H:i" }}</p>
+
+        <!-- Изображение товара -->
+        {% if ad.image_url %}
+            <img src="{{ ad.image_url }}" alt="{{ ad.title }}" class="ad-image">
+        {% endif %}
+
+        <!-- Описание и детали -->
+        <div class="ad-details">
+            <h3>Описание:</h3>
+            <p>{{ ad.description }}</p>
+
+            <h3>Характеристики:</h3>
+            <ul>
+                <li><strong>Категория:</strong> {{ ad.category }}</li>
+                <li><strong>Состояние:</strong> {{ ad.get_condition_display }}</li>
+            </ul>
+        </div>
+
+        <!-- Кнопки действий (только для автора) -->
+        {% if ad.user == request.user %}
+            <div class="action-buttons">
+                <a href="{% url 'edit_ad' ad.id %}">Редактировать</a>
+                <a href="{% url 'delete_ad' ad.id %}" class="delete">Удалить</a>
+            </div>
+        {% else %}
+            <div class="action-buttons">
+                <a href="{% url 'create_proposal' ad.id %}">Предложить обмен</a>
+            </div>
+        {% endif %}
+
+        <!-- Блок предложений обмена (только для автора) -->
+        {% if ad.user == request.user %}
+            <div class="proposals-list">
+                <h2>Предложения обмена</h2>
+                {% for proposal in ad.received_proposals.all %}
+                    <div class="proposal">
+                        <p><strong>От:</strong> {{ proposal.ad_sender.user.username }}</p>
+                        <p><strong>Предлагает:</strong>
+                            <a href="{% url 'ad_detail' proposal.ad_sender.id %}">
+                                {{ proposal.ad_sender.title }}
+                            </a>
+                        </p>
+                        <p><strong>Комментарий:</strong> {{ proposal.comment }}</p>
+                        <p><strong>Статус:</strong> {{ proposal.get_status_display }}</p>
+                        <p><small>Дата: {{ proposal.created_at|date:"d.m.Y H:i" }}</small></p>
+
+                        {% if proposal.status == 'pending' %}
+                            <div class="proposal-actions">
+                                <a href="{% url 'accept_proposal' proposal.id %}">Принять</a>
+                                <a href="{% url 'reject_proposal' proposal.id %}">Отклонить</a>
+                            </div>
+                        {% endif %}
+                    </div>
+                {% empty %}
+                    <p>Пока нет предложений обмена.</p>
+                {% endfor %}
+            </div>
+        {% endif %}
+        {% if ad.received_proposals.all %}
+        <div class="proposals">
+            <h3>Предложения обмена:</h3>
+            {% for proposal in ad.received_proposals.all %}
+                <div class="proposal {% if proposal.status == 'accepted' %}accepted{% endif %}">
+                    <p>От: {{ proposal.ad_sender.user.username }}</p>
+                    <p>Товар: <a href="{% url 'ad_detail' proposal.ad_sender.id %}">{{ proposal.ad_sender.title }}</a></p>
+                    <p>Комментарий: {{ proposal.comment }}</p>
+                    <p>Статус: {{ proposal.get_status_display }}</p>
+
+                    {% if ad.user == request.user and proposal.status == 'pending' %}
+                        <a href="{% url 'manage_proposal' proposal.id 'accept' %}">Принять</a>
+                        <a href="{% url 'manage_proposal' proposal.id 'reject' %}">Отклонить</a>
+                    {% endif %}
+                </div>
+            {% endfor %}
+        </div>
+        {% endif %}
+        <div style="margin-top: 30px;">
+            <a href="{% url 'ad_list' %}">← Вернуться к списку объявлений</a>
+        </div>
+    </div>
+</body>
+</html>

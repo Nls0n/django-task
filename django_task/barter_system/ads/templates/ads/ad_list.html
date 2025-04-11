@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Список объявлений</title>
+</head>
+<body>
+    <form method="get" class="search-form">
+        <input type="text" name="q" placeholder="Поиск..." value="{{ request.GET.q }}">
+
+        <select name="category">
+            <option value="">Все категории</option>
+            {% for cat in categories %}
+                <option value="{{ cat }}" {% if request.GET.category == cat %}selected{% endif %}>
+                    {{ cat }}
+                </option>
+            {% endfor %}
+        </select>
+
+        <button type="submit">Найти</button>
+    </form>
+    {% if user.is_authenticated and ad.user != request.user %}
+    <a href="{% url 'create_proposal' ad.id %}" class="btn-exchange">
+        Предложить обмен
+    </a>
+    {% endif %}
+    <h1>Все объявления</h1>
+    <a href="{% url 'create_ad' %}">Создать новое объявление</a>
+    <hr>
+
+    <!-- Используем page_obj вместо ads -->
+    {% for ad in page_obj %}
+        <div>
+            <h2><a href="{% url 'ad_detail' ad.id %}">{{ ad.title }}</a></h2>
+            <p>{{ ad.description|truncatechars:100 }}</p>
+            <p>Категория: {{ ad.category }} | Состояние: {{ ad.get_condition_display }}</p>
+            <small>Опубликовано: {{ ad.created_at }} пользователем {{ ad.user.username }}</small>
+        </div>
+        <hr>
+    {% empty %}
+        <p>Нет объявлений.</p>
+    {% endfor %}
+
+    <!-- Пагинация -->
+    <div class="pagination">
+        {% if page_obj.has_previous %}
+            <a href="?page=1">Первая</a>
+            <a href="?page={{ page_obj.previous_page_number }}">Назад</a>
+        {% endif %}
+
+        <span>Страница {{ page_obj.number }} из {{ page_obj.paginator.num_pages }}</span>
+
+        {% if page_obj.has_next %}
+            <a href="?page={{ page_obj.next_page_number }}">Вперед</a>
+            <a href="?page={{ page_obj.paginator.num_pages }}">Последняя</a>
+        {% endif %}
+    </div>
+</body>
+</html>
